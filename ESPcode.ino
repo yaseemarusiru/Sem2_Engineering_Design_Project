@@ -1,9 +1,3 @@
-/*******************************************************************
- *  An example of how to use a custom reply keyboard markup.       *
- *                                                                 *
- *                                                                 *
- *  written by Vadim Sinitski                                      *
- *******************************************************************/
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
