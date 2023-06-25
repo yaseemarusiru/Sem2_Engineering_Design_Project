@@ -16,9 +16,9 @@
 #define SCREEN_WIDTH 128 //In pixels
 #define SCREEN_HEIGHT 64 //In pixels
 //Hardware SPI
-#define OLED_DC     9
-#define OLED_CS     A2
-#define OLED_RESET  10
+//#define OLED_DC     9
+//#define OLED_CS     A2
+//#define OLED_RESET  10
 //scl  13
 //sda  11
 
@@ -34,17 +34,19 @@
 
 HX711 loadCell;
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
-  &SPI, OLED_DC, OLED_RESET, OLED_CS);
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, OLED_DC, OLED_RESET, OLED_CS);
+
+#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 SoftwareSerial mySerial(2,3);
 
 String data ;
 char c;
-float scalingFactor = 538;
+float scalingFactor = 400; //538
 float weight = 50000; //dummy weight - should take from wifi module
 float recomendedAmount = weight*0.033;
-int percentageOfWater = 0;
+float percentageOfWater = 0;
 float w1,w2;
 float consumptionTotal = 0;
 String prevHour="10", currentHour="11";
@@ -52,6 +54,9 @@ String prevMinute= "03", currentMinute= "04";
 bool flag1 = true, flag2 = true, flag3 = true;
 int x=14+ 46*(1-0.01*percentageOfWater);
 int m;
+
+int *y;
+
 
 char teamName[]={'S','P','A','R','T','A','N','S'};
 String stratString[]={" Smart"," Water","Traking"," Device"};
@@ -74,14 +79,15 @@ static const unsigned char PROGMEM logo_bmp[] =
   B00000000, B00110000 };
 
 void setup() {
-  mySerial.begin(9600);
+
 
   loadCell.begin(DT,SCK);  //initialize the pin modes and sets the gain to 128
   loadCell.tare();  //0 will be the weight measured at this time
   loadCell.set_scale(scalingFactor);  //used to divide the reading to measure weight in grams
 
-  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
-    for(;;); // If display is not ready, don't proceed, loop forever
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) {
+    //Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
   }
 
   //the library initializes this with an Adafruit splash screen.
@@ -97,12 +103,12 @@ void setup() {
   displayStartString();
   display.clearDisplay();
   
-  w1 = loadCell.get_units(7); //initial weight
+  w1 = 1000*loadCell.get_units(7); //initial weight
 }
 
 void loop() {
-  //delay(2000);
-  while(mySerial.available()>0){
+  delay(500);
+ while(mySerial.available()>0){
       delay(10);
       c = mySerial.read();
       data += c; 
@@ -118,17 +124,16 @@ void loop() {
   }
 
   data = "";
-
-  w2 = loadCell.get_units(7);
+  w2 = 1000*loadCell.get_units(7);
 
   displayConsumption();
 
-  if (w2<50) {
+  if (w2<10) {
     w2=w1;
   }
-  if (w1-w2>15) {
+  if (w1-w2>0) {
     consumptionTotal += (w1-w2);
-    percentageOfWater = consumptionTotal/recomendedAmount*100;
+    percentageOfWater = consumptionTotal*100/recomendedAmount;
   }
 
   w1 = w2;
@@ -146,7 +151,6 @@ void displaySpartans(){
     display.display();
     delay(200);
   }
-  delay(200);
 }
 
 void displayStartString(){
@@ -168,7 +172,7 @@ void displayConsumption(){
     m=0;
     flag1 = false; 
   }
-  if(m!=x){
+  if((m!=x) && (flag1)){
     drawSnowflakes(logo_bmp, LOGO_WIDTH, LOGO_HEIGHT); 
     m=x;
   }
@@ -182,12 +186,13 @@ void displayConsumption(){
     display.fillRect(16,11,8,3,WHITE);
     display.setCursor(50,30);
     display.setTextSize(4);
-    display.print(percentageOfWater);//display percentage
+    int perc = percentageOfWater;
+    display.print(perc);//display percentage
     display.print("%");
     displayTime();
     display.display();
-    delay(2000);
-    display.clearDisplay();
+    delay(200);
+    //display.clearDisplay();
   }
 
   else {
