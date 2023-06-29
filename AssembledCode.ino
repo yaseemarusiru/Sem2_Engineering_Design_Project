@@ -10,17 +10,26 @@
 
 ////----HX711 Amplifier---------
 #define DT 8
-#define SCK 12
+#define SCK 4
 
 //----------OLED Dislpay-------------
 #define SCREEN_WIDTH 128 //In pixels
 #define SCREEN_HEIGHT 64 //In pixels
 //Hardware SPI
-//#define OLED_DC     9
-//#define OLED_CS     A2
-//#define OLED_RESET  10
+#define OLED_DC     9
+#define OLED_CS     A2
+#define OLED_RESET  10
 //scl  13
 //sda  11
+
+// Declaration for SSD1306 display connected using software SPI:
+//#define OLED_MOSI   9
+//#define OLED_CLK   10
+//#define OLED_DC    11
+//#define OLED_CS    12
+//#define OLED_RESET 13
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
+
 
 // Number of snowflakes in the animation
 #define NUMFLAKES     30 
@@ -34,23 +43,23 @@
 
 HX711 loadCell;
 
-//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, OLED_DC, OLED_RESET, OLED_CS);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, OLED_DC, OLED_RESET, OLED_CS);
 
-#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+//#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 SoftwareSerial mySerial(2,3);
 
 String data ;
 char c;
 float scalingFactor = 400; //538
-float weight = 50000; //dummy weight - should take from wifi module
+float weight = 70000; //dummy weight - should take from wifi module
 float recomendedAmount = weight*0.033;
 float percentageOfWater = 0;
 float w1,w2;
 float consumptionTotal = 0;
-String prevHour="10", currentHour="11";
-String prevMinute= "03", currentMinute= "04";
+String prevHour="10", currentHour="03";
+String prevMinute= "03", currentMinute= "53";
 bool flag1 = true, flag2 = true, flag3 = true;
 int x=14+ 46*(1-0.01*percentageOfWater);
 int m;
@@ -85,7 +94,7 @@ void setup() {
   loadCell.tare();  //0 will be the weight measured at this time
   loadCell.set_scale(scalingFactor);  //used to divide the reading to measure weight in grams
 
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) {
+  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
     //Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   }
@@ -103,11 +112,11 @@ void setup() {
   displayStartString();
   display.clearDisplay();
   
-  w1 = 1000*loadCell.get_units(7); //initial weight
+  w1 = loadCell.get_units(7); //initial weight
 }
 
 void loop() {
-  delay(500);
+  delay(1000);
  while(mySerial.available()>0){
       delay(10);
       c = mySerial.read();
@@ -124,14 +133,14 @@ void loop() {
   }
 
   data = "";
-  w2 = 1000*loadCell.get_units(7);
+  w2 = loadCell.get_units(7);
 
   displayConsumption();
 
   if (w2<10) {
     w2=w1;
   }
-  if (w1-w2>0) {
+  if (w1-w2>20) {
     consumptionTotal += (w1-w2);
     percentageOfWater = consumptionTotal*100/recomendedAmount;
   }
