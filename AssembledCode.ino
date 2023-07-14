@@ -1,29 +1,31 @@
-//HX711 Amplifier
+//----HX711 Amplifier--------
 #include "HX711.h"
 #include <SoftwareSerial.h>
 
-//OLED Dislpay
+//----OLED Dislpay-----------
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-////----HX711 Amplifier---------
+//----Time Libraries---------
+#include <Time.h>
+#include <TimeLib.h>
+
+//----HX711 Amplifier---------
 #define DT 8
 #define SCK 4
 
 //----------OLED Dislpay-------------
 #define SCREEN_WIDTH 128 //In pixels
 #define SCREEN_HEIGHT 64 //In pixels
+
 //Hardware SPI
 #define OLED_DC     9
 #define OLED_CS     A2
 #define OLED_RESET  10
 //scl  13
 //sda  11
-
-#include <Time.h>
-#include <TimeLib.h>
 
 // Number of snowflakes in the animation
 #define NUMFLAKES     30 
@@ -49,25 +51,11 @@ float recomendedAmount = weight*0.067;
 float percentageOfWater = 0;
 float w1,w2;
 float consumptionTotal = 0;
-
-bool flag1 = true, flag2 = true, flag3 = true;
-int x=14+ 46*(1-0.01*percentageOfWater);
-int m;
-String currentHour;
-String currentMinute;
-String currentSec;
-int *y;
-
-int flag5 = true;
-
-String str1;
-String str2;
-
-int currentHour1;
-int currentMinute1;
-
 float prevConsumptionTotal = 0;
-float currentConsumptionTotal = 0;
+
+bool flag1 = true, flag5 = true;
+int x=14+ 46*(1-0.01*percentageOfWater);
+int m, currentHour1, currentMinute1;
 
 char teamName[]={'S','P','A','R','T','A','N','S'};
 String stratString[]={" Smart"," Water","Traking"," Device"};
@@ -94,11 +82,14 @@ void setup() {
   loadCell.begin(DT,SCK);  //initialize the pin modes and sets the gain to 128
   loadCell.tare();  //0 will be the weight measured at this time
   loadCell.set_scale(scalingFactor);  //used to divide the reading to measure weight in grams
+  
   mySerial.begin(9600);
-  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
+  
+  if(!display.begin(SSD1306_SWITCHCAPVCC)) { //wait unitil OLED is ready
     for(;;);
   }
 
+  //initialize with the Adafruit flash screen
   display.display();
   delay(1000); // Pause for 1 seconds
 
@@ -110,25 +101,31 @@ void setup() {
   //display starting string
   displayStartString();
   display.clearDisplay();
-  
+
+  //get initial weight reading
   w1 = loadCell.get_units(7); //initial weight
 }
 
 void loop() {
-  delay(4000);
+  
+  delay(4000);  //to obtain accurate readings from the Load Cell
+  
+  //read serial monitor to check for any msg from wifi module
   while(mySerial.available()>0){
       delay(10);
       c = mySerial.read();
       data += c; 
   } 
-
+  
+  //if msg's first chararcter is "W" it's the weight user entered through telegram
   if (data[0]=="W"){
     int w1 = data[1] - '0';
     int w2 = data[2] - '0';
     weight = 10*w1+w2;
     data = "";
   }
-
+  
+  //if msg's first chararcter is "T" it's the current time obtained by NTP through WiFi module
   if ((data[0]=='T') && flag5) {
     int t1 = data[1] - '0';
     int t2 = data[2] - '0';
@@ -139,30 +136,30 @@ void loop() {
     setTime(10*t1+t2,10*t3+t4,10*t5+t6,12,7,23);
   
     data = "";
-    flag5 = false;
+    flag5 = false;  //to make sure that the time is obtained from the WiFi module only once
   }
 
   display.clearDisplay();
   display.setTextColor(WHITE,BLACK);
   
   data = "";
-  int prevSec = second();
+
   w2 = loadCell.get_units(7);
 
-  displayConsumption();
+  displayConsumption();  //display the precentage of water consumed in the OLED screen
 
-  if (w2<10) {
+  if (w2<10) {  //if the weight difference is a lesser number it's probably because of a small reading error due to the environmental conditions
     w2=w1;
   }
 
-  if (w1-w2>20) {
-    prevConsumptionTotal = consumptionTotal;
-    consumptionTotal += (w1-w2);
+  if (w1-w2>20) {  //to neglect such errors
+    prevConsumptionTotal = consumptionTotal;  //keep track of previous consumption to send msg to the user
+    consumptionTotal += (w1-w2);  //update the change
     percentageOfWater = consumptionTotal*100/recomendedAmount;
   }
 
   w1 = w2;
-  if (prevConsumptionTotal!=consumptionTotal){
+  if (prevConsumptionTotal!=consumptionTotal){  //if there's a consumption of water, inform user about it
     prevConsumptionTotal = consumptionTotal;
     int consumptionInt = consumptionTotal;
     mySerial.print(consumptionInt);
