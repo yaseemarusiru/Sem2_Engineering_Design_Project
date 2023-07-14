@@ -56,10 +56,7 @@ void arduinomsg(){
         c = Serial.read();
         data += c;
   } 
-  // if (data=="100"){
-  // bot.sendMessage(chat_id,"You have drunk enough water for the day. Yippy :)"); 
-  // data="";
-  // }
+
   if (data=="0.00"){
     data = "";
   }
@@ -72,7 +69,7 @@ void arduinomsg(){
 void setup()
 {
   Serial.begin(9600);
-
+  
   // attempt to connect to Wifi network:
   configTime(19800, 0, "pool.ntp.org");      // get UTC time via NTP
   secured_client.setTrustAnchors(&cert); // Add root certificate for api.telegram.org
@@ -82,7 +79,7 @@ void setup()
   
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);//
+    delay(500);
   }
 
   time_t now = time(nullptr);
@@ -99,8 +96,6 @@ void setup()
   wel += "\n";
   wel+= "Countdown starts now";
   bot.sendMessage(chat_id, wel);
-  // String welo = "Countdown starts now";
-  // bot.sendMessage(chat_id, welo);
   timeClient.begin();
   timeClient.setTimeOffset(19800);
   timeClient.update();
@@ -136,10 +131,11 @@ void loop()
   }
 
   Serial.print("T"+currhour1+minutes1+secs1);
-  //bot.sendMessage(chat_id, String(minutes1));
+  
   currhour1 = "";
   minutes1 = "";
   secs1 = "";
+  
   if (millis() - bot_lasttime > BOT_MTBS)
   {
 
