@@ -22,14 +22,8 @@
 //scl  13
 //sda  11
 
-// Declaration for SSD1306 display connected using software SPI:
-//#define OLED_MOSI   9
-//#define OLED_CLK   10
-//#define OLED_DC    11
-//#define OLED_CS    12
-//#define OLED_RESET 13
-//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
-
+#include <Time.h>
+#include <TimeLib.h>
 
 // Number of snowflakes in the animation
 #define NUMFLAKES     30 
@@ -45,27 +39,35 @@ HX711 loadCell;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, OLED_DC, OLED_RESET, OLED_CS);
 
-//#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
-//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
 SoftwareSerial mySerial(2,3);
 
-String data ;
+String data = "" ;
 char c;
 float scalingFactor = 400; //538
-float weight = 70000; //dummy weight - should take from wifi module
-float recomendedAmount = weight*0.033;
+float weight = 50000; //dummy weight - should take from wifi module
+float recomendedAmount = weight*0.067;
 float percentageOfWater = 0;
 float w1,w2;
 float consumptionTotal = 0;
-String prevHour="10", currentHour="03";
-String prevMinute= "03", currentMinute= "53";
+
 bool flag1 = true, flag2 = true, flag3 = true;
 int x=14+ 46*(1-0.01*percentageOfWater);
 int m;
-
+String currentHour;
+String currentMinute;
+String currentSec;
 int *y;
 
+int flag5 = true;
+
+String str1;
+String str2;
+
+int currentHour1;
+int currentMinute1;
+
+float prevConsumptionTotal = 0;
+float currentConsumptionTotal = 0;
 
 char teamName[]={'S','P','A','R','T','A','N','S'};
 String stratString[]={" Smart"," Water","Traking"," Device"};
@@ -89,17 +91,14 @@ static const unsigned char PROGMEM logo_bmp[] =
 
 void setup() {
 
-
   loadCell.begin(DT,SCK);  //initialize the pin modes and sets the gain to 128
   loadCell.tare();  //0 will be the weight measured at this time
   loadCell.set_scale(scalingFactor);  //used to divide the reading to measure weight in grams
-
+  mySerial.begin(9600);
   if(!display.begin(SSD1306_SWITCHCAPVCC)) {
-    //Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   }
 
-  //the library initializes this with an Adafruit splash screen.
   display.display();
   delay(1000); // Pause for 1 seconds
 
@@ -116,23 +115,38 @@ void setup() {
 }
 
 void loop() {
-  delay(1000);
- while(mySerial.available()>0){
+  delay(4000);
+  while(mySerial.available()>0){
       delay(10);
       c = mySerial.read();
       data += c; 
-    } 
+  } 
+
   if (data[0]=="W"){
-    weight = data[1]+data[2];
-    data = "";
-  }
-  if (data[0]=="T") {
-    currentHour = data[1]+data[2];
-    currentMinute = data[3]+data[4];
+    int w1 = data[1] - '0';
+    int w2 = data[2] - '0';
+    weight = 10*w1+w2;
     data = "";
   }
 
+  if ((data[0]=='T') && flag5) {
+    int t1 = data[1] - '0';
+    int t2 = data[2] - '0';
+    int t3 = data[3] - '0';
+    int t4 = data[4] - '0';
+    int t5 = data[5] - '0';
+    int t6 = data[6] - '0';
+    setTime(10*t1+t2,10*t3+t4,10*t5+t6,12,7,23);
+  
+    data = "";
+    flag5 = false;
+  }
+
+  display.clearDisplay();
+  display.setTextColor(WHITE,BLACK);
+  
   data = "";
+  int prevSec = second();
   w2 = loadCell.get_units(7);
 
   displayConsumption();
@@ -140,12 +154,19 @@ void loop() {
   if (w2<10) {
     w2=w1;
   }
+
   if (w1-w2>20) {
+    prevConsumptionTotal = consumptionTotal;
     consumptionTotal += (w1-w2);
     percentageOfWater = consumptionTotal*100/recomendedAmount;
   }
 
   w1 = w2;
+  if (prevConsumptionTotal!=consumptionTotal){
+    prevConsumptionTotal = consumptionTotal;
+    int consumptionInt = consumptionTotal;
+    mySerial.print(consumptionInt);
+  }
 }
 
 void displaySpartans(){
@@ -201,7 +222,6 @@ void displayConsumption(){
     displayTime();
     display.display();
     delay(200);
-    //display.clearDisplay();
   }
 
   else {
@@ -210,7 +230,7 @@ void displayConsumption(){
     display.setCursor(10,0);
     display.println();
     display.println(" You Have");
-    display.println("  Drink ");
+    display.println("  Drunk ");
     display.println(" Enough");
     displayTime();
     display.display();
@@ -222,16 +242,50 @@ void displayTime(){
   display.setCursor(40,0);
   display.setTextSize(2);
 
-  if(currentHour.toInt()<13){
-    display.print(currentHour);
-    display.print(":");
-    display.print(currentMinute);
-    display.print("am");  //display time am
+  currentHour1 = hour();
+  currentMinute1 = minute();
+  if ((currentHour1==0) && (currentMinute1==0)){
+    display.setTextSize(1);
+    display.print("SPARTANS");
     display.display();
   }
   else {
-    display.print(currentHour+String(".")+currentMinute+String("pm"));  //display time pm
+  if(currentHour1<12){
+    display.print(currentHour1);
+    display.print(":");
+    if (currentMinute1<10){
+      display.print("0");
+    }
+
+    display.print(currentMinute1);
+    
+    display.print("am");  //display time am
     display.display();
+  }
+  else if (currentHour1==12) {
+    display.print(currentHour1);
+    display.print(":");
+    if (currentMinute1<10){
+      display.print("0");
+    }
+
+    display.print(currentMinute1);
+    
+    display.print("pm");  //display time pm
+    display.display();
+  }
+  else {
+    display.print(currentHour1-12);
+    display.print(":");
+    if (currentMinute1<10){
+      display.print("0");
+    }
+
+    display.print(currentMinute1);
+    
+    display.print("pm");  //display time pm
+    display.display();
+  }
   }
 }
 
