@@ -197,14 +197,6 @@ void displayStartString(){
 }
 
 void displayConsumption(){
-  if (flag1) {
-    m=0;
-    flag1 = false; 
-  }
-  if((m!=x) && (flag1)){
-    drawSnowflakes(logo_bmp, LOGO_WIDTH, LOGO_HEIGHT); 
-    m=x;
-  }
 
   x=14+ 46*(1-0.01*percentageOfWater);//set coordinate
   if(percentageOfWater<101){
@@ -295,37 +287,3 @@ void testdrawbitmap() {
   delay(1000);
 }
 
-void drawSnowflakes(const uint8_t *bitmap, uint8_t w, uint8_t h) {
-  int8_t f, icons[NUMFLAKES][3];
-
-  // Initialize 'snowflake' positions
-  for(f=0; f< NUMFLAKES; f++) {
-    icons[f][XPOS]   = random(1 - LOGO_WIDTH, display.width());
-    icons[f][YPOS]   = -LOGO_HEIGHT;
-    icons[f][DELTAY] = random(1, 6);
-  }
-
-  for(int k=0;k<25;k++) { // Loop forever...
-    display.clearDisplay(); // Clear the display buffer
-
-    // Draw each snowflake:
-    for(f=0; f< NUMFLAKES; f++) {
-      display.drawBitmap(icons[f][XPOS], icons[f][YPOS], bitmap, w, h, SSD1306_WHITE);
-    }
-
-    display.display(); // Show the display buffer on the screen
-    delay(200);        // Pause for 1/10 second
-
-    // Then update coordinates of each flake...
-    for(f=0; f< NUMFLAKES; f++) {
-      icons[f][YPOS] += icons[f][DELTAY];
-      // If snowflake is off the bottom of the screen...
-      if (icons[f][YPOS] >= display.height()) {
-        // Reinitialize to a random position, just off the top
-        icons[f][XPOS]   = random(1 - LOGO_WIDTH, display.width());
-        icons[f][YPOS]   = -LOGO_HEIGHT;
-        icons[f][DELTAY] = random(1, 6);
-      }
-    }
-  }
-}
