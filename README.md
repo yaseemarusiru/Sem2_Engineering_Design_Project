@@ -5,7 +5,7 @@ This repository contains the codes written for the EN1190 Engineering Design Pro
   * HX711 library (to be used with the load cell) and
   * Time library (To keep track of time after it is initially set up by the WiFi module)
 
-You can find our PCB design and enclosure designs through the following links.
+You can find our PCB design and enclosure designs through the following link.
 https://drive.google.com/drive/folders/1x2NnSB9LSP8u9NDLuzhR6U7rdzLJ97Un?usp=drive_link
 
 Here's a close lookup of our final product. 
